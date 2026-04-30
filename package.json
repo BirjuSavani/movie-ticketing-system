@@ -16,7 +16,7 @@
     "test:coverage": "jest --coverage --forceExit --detectOpenHandles",
     "test:concurrency": "jest --runTestsByPath src/__tests__/concurrency.test.ts --forceExit --detectOpenHandles",
     "lint": "tsc --noEmit",
-    "seed": "ts-node src/scripts/seed.ts"
+    "seed": "ts-node src/database/scripts/seed.ts"
   },
   "keywords": [],
   "author": "",

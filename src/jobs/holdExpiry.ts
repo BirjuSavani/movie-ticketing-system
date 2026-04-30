@@ -3,6 +3,7 @@ import { In, LessThan } from "typeorm";
 import { AppDataSource } from "../config/database";
 import { Booking } from "../database/entities/Booking";
 import { SeatInventory } from "../database/entities/SeatInventory";
+import { BookedSeat } from "../database/entities/BookedSeat";
 import { logger } from "../utils/logger";
 import { TimeUtil } from "../utils/time";
 
@@ -36,12 +37,12 @@ export const startHoldExpiryJob = () => {
         await queryRunner.manager.save(SeatInventory, expiredSeats);
 
         // Find associated bookings and mark them as expired
-        const bookedSeats = await queryRunner.manager.find("BookedSeat", {
+        const bookedSeats = await queryRunner.manager.find(BookedSeat, {
           where: { seatInventoryId: In(seatInventoryIds) },
         });
 
         // Remove duplicates
-        const bookingIds = [...new Set(bookedSeats.map((bs: any) => bs.bookingId))];
+        const bookingIds = [...new Set(bookedSeats.map(bs => bs.bookingId))];
 
         if (bookingIds.length > 0) {
           // Update status for expired bookings
@@ -61,7 +62,7 @@ export const startHoldExpiryJob = () => {
 
       await queryRunner.commitTransaction();
     } catch (error) {
-      logger.error("Error in holdExpiry cron job:", { error });
+      logger.error("Error in holdExpiry cron job:", error);
       await queryRunner.rollbackTransaction();
     } finally {
       await queryRunner.release();
