@@ -1,0 +1,467 @@
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        201:
+          description: Created
+        400:
+          description: Validation error
+        409:
+          description: Conflict
+
+  /auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        200:
+          description: Success
+        401:
+          description: Unauthorized
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        200:
+          description: Success
+        401:
+          description: Unauthorized
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        200:
+          description: Success
+
+  /movies:
+    get:
+      summary: Get all movies
+      tags: [Movies]
+      parameters:
+        - in: query
+          name: genre
+          schema:
+            type: string
+        - in: query
+          name: language
+          schema:
+            type: string
+        - in: query
+          name: rating
+          schema:
+            type: string
+            enum: [U, UA, A]
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [releaseDate, title]
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [ASC, DESC, asc, desc]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Success
+
+    post:
+      summary: Create movie (Admin)
+      tags: [Movies]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                genre:
+                  type: string
+                language:
+                  type: string
+                durationMinutes:
+                  type: number
+                rating:
+                  type: string
+                releaseDate:
+                  type: string
+                  format: date
+      responses:
+        201:
+          description: Created
+        403:
+          description: Forbidden
+
+  /movies/{id}:
+    get:
+      summary: Get movie by id
+      tags: [Movies]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        404:
+          description: Not found
+
+    patch:
+      summary: Update movie (Admin)
+      tags: [Movies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                genre:
+                  type: string
+                language:
+                  type: string
+                durationMinutes:
+                  type: number
+                rating:
+                  type: string
+                releaseDate:
+                  type: string
+                  format: date
+      responses:
+        200:
+          description: Success
+
+    delete:
+      summary: Soft delete movie (Admin)
+      tags: [Movies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+
+  /screens:
+    get:
+      summary: Get screens (Admin)
+      tags: [Screens]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Success
+
+    post:
+      summary: Create screen (Admin)
+      tags: [Screens]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                totalSeats:
+                  type: number
+                rows:
+                  type: number
+                seatsPerRow:
+                  type: number
+                rowTypeMapping:
+                  type: object
+      responses:
+        201:
+          description: Created
+
+  /screens/{id}:
+    get:
+      summary: Get screen by id (Admin)
+      tags: [Screens]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+
+  /showtimes:
+    get:
+      summary: Get showtimes
+      tags: [Showtimes]
+      parameters:
+        - in: query
+          name: movieId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: screenId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+      responses:
+        200:
+          description: Success
+
+    post:
+      summary: Create showtime (Admin)
+      tags: [Showtimes]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                movieId:
+                  type: string
+                screenId:
+                  type: string
+                startsAt:
+                  type: string
+                  format: date-time
+                endsAt:
+                  type: string
+                  format: date-time
+                basePrice:
+                  type: number
+      responses:
+        201:
+          description: Created
+
+  /showtimes/{id}:
+    get:
+      summary: Get showtime
+      tags: [Showtimes]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+
+  /showtimes/{id}/seats:
+    get:
+      summary: Get showtime seats
+      tags: [Showtimes]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+
+  /bookings/reserve:
+    post:
+      summary: Reserve seats (Hold)
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                showtimeId:
+                  type: string
+                seatIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        201:
+          description: Reserved
+        409:
+          description: Seat unavailable
+
+  /bookings/{id}/confirm:
+    post:
+      summary: Confirm booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentMethod:
+                  type: string
+                  example: card
+                cardLastFour:
+                  type: string
+                  example: 4242
+      responses:
+        200:
+          description: Confirmed
+
+  /bookings/my:
+    get:
+      summary: Get my bookings
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Success
+
+  /bookings/{id}:
+    get:
+      summary: Get booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+
+    delete:
+      summary: Cancel booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Cancelled

@@ -1,0 +1,2 @@
+// Payment types
+export {};

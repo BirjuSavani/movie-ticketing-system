@@ -1,0 +1,2 @@
+// Mock payment controller
+export {};
