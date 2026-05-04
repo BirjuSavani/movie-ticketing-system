@@ -2,25 +2,28 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Seat } from './Seat';
 import { Showtime } from './Showtime';
 
-@Entity('screens')
+@Entity("screens")
 export class Screen {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: "varchar", length: 100 })
   name!: string;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   totalSeats!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   rows!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   seatsPerRow!: number;
 
-  @Column({ type: 'jsonb' })
+  @Column({ type: "jsonb" })
   rowTypeMapping!: Record<string, string>;
+
+  @Column({ type: "boolean", default: true })
+  isActive!: boolean;
 
   @OneToMany(() => Seat, seat => seat.screen, { cascade: true })
   seats!: Seat[];
@@ -28,9 +31,9 @@ export class Screen {
   @OneToMany(() => Showtime, showtime => showtime.screen)
   showtimes!: Showtime[];
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type: "timestamptz" })
   createdAt!: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz' })
+  @UpdateDateColumn({ type: "timestamptz" })
   updatedAt!: Date;
 }

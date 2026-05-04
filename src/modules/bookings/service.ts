@@ -1,4 +1,3 @@
-import { In } from "typeorm";
 import { AppDataSource } from "../../config/database";
 import { env } from "../../config/env";
 import { BookedSeat } from "../../database/entities/BookedSeat";
@@ -10,6 +9,8 @@ import { MESSAGES } from "../../messages/messages";
 import { AppError } from "../../utils/AppError";
 import { generateBookingReference } from "../../utils/helpers";
 import { TimeUtil } from "../../utils/time";
+import { In } from "typeorm";
+import { ReserveSeatsDto } from "./types";
 
 /** PostgreSQL error code for lock_not_available */
 const PG_LOCK_NOT_AVAILABLE = "55P03";
@@ -46,7 +47,7 @@ const validateShowtimeBookingWindow = (showtime: Showtime) => {
 export const reserve = async (
   userId: string,
   idempotencyKey: string | undefined,
-  data: { showtimeId: string; seatIds: string[] }
+  data: ReserveSeatsDto
 ) => {
   try {
     if (idempotencyKey) {
@@ -68,6 +69,14 @@ export const reserve = async (
     }
 
     return await AppDataSource.transaction(async manager => {
+      const showtime = await manager.findOne(Showtime, {
+        where: { id: data.showtimeId },
+      });
+
+      if (!showtime) {
+        throw new AppError(404, "SHOWTIME_NOT_FOUND", MESSAGES.SHOWTIME.ERROR.NOT_FOUND);
+      }
+
       const seatInventories = await manager.find(SeatInventory, {
         where: {
           showtimeId: data.showtimeId,
@@ -76,15 +85,7 @@ export const reserve = async (
       });
 
       if (seatInventories.length !== data.seatIds.length) {
-        throw new AppError(400, "VALIDATION_ERROR", MESSAGES.BOOKING.INVALID_SEATS);
-      }
-
-      const showtime = await manager.findOne(Showtime, {
-        where: { id: data.showtimeId },
-      });
-
-      if (!showtime) {
-        throw new AppError(404, "SHOWTIME_NOT_FOUND", "Showtime not found");
+        throw new AppError(400, "VALIDATION_ERROR", MESSAGES.BOOKING.ERROR.INVALID_SEATS);
       }
 
       // BOOKING CUT-OFF CHECK
@@ -98,7 +99,7 @@ export const reserve = async (
 
       for (const seat of lockedSeats) {
         if (seat.status !== "available") {
-          throw new AppError(409, "SEAT_UNAVAILABLE", MESSAGES.BOOKING.INVALID_SEATS_AVAILABLE);
+          throw new AppError(409, "SEAT_UNAVAILABLE", MESSAGES.BOOKING.ERROR.SEAT_UNAVAILABLE);
         }
       }
 
@@ -140,7 +141,7 @@ export const reserve = async (
     });
   } catch (err: unknown) {
     if (isLockNotAvailable(err)) {
-      throw new AppError(409, "HIGH_CONTENTION", MESSAGES.BOOKING.HIGH_CONTENTION);
+      throw new AppError(409, "HIGH_CONTENTION", MESSAGES.BOOKING.ERROR.HIGH_CONTENTION);
     }
     throw err;
   }
@@ -156,11 +157,11 @@ export const confirm = async (userId: string, bookingId: string, paymentData: an
       });
 
       if (!booking) {
-        throw new AppError(404, "BOOKING_NOT_FOUND", MESSAGES.BOOKING.BOOKING_NOT_FOUND);
+        throw new AppError(404, "BOOKING_NOT_FOUND", MESSAGES.BOOKING.ERROR.NOT_FOUND);
       }
 
       if (booking.userId !== userId) {
-        throw new AppError(403, "FORBIDDEN", MESSAGES.BOOKING.FORBIDDEN);
+        throw new AppError(403, "FORBIDDEN", MESSAGES.BOOKING.ERROR.FORBIDDEN);
       }
 
       if (booking.status !== "pending") {
@@ -178,7 +179,7 @@ export const confirm = async (userId: string, bookingId: string, paymentData: an
 
       for (const seat of lockedSeats) {
         if (seat.status !== "held" || !seat.heldUntil || TimeUtil.isAfter(now, seat.heldUntil)) {
-          throw new AppError(400, "BOOKING_EXPIRED", MESSAGES.BOOKING.BOOKING_EXPIRED);
+          throw new AppError(400, "BOOKING_EXPIRED", MESSAGES.BOOKING.ERROR.EXPIRED);
         }
         amount += Number(seat.price);
       }
@@ -207,7 +208,7 @@ export const confirm = async (userId: string, bookingId: string, paymentData: an
     });
   } catch (err) {
     if (isLockNotAvailable(err)) {
-      throw new AppError(409, "HIGH_CONTENTION", MESSAGES.BOOKING.HIGH_CONTENTION);
+      throw new AppError(409, "HIGH_CONTENTION", MESSAGES.BOOKING.ERROR.HIGH_CONTENTION);
     }
     throw err;
   }
@@ -222,11 +223,11 @@ export const cancel = async (userId: string, bookingId: string, isAdmin: boolean
     });
 
     if (!booking) {
-      throw new AppError(404, "BOOKING_NOT_FOUND", MESSAGES.BOOKING.BOOKING_NOT_FOUND);
+      throw new AppError(404, "BOOKING_NOT_FOUND", MESSAGES.BOOKING.ERROR.NOT_FOUND);
     }
 
     if (!isAdmin && booking.userId !== userId) {
-      throw new AppError(403, "FORBIDDEN", MESSAGES.BOOKING.FORBIDDEN);
+      throw new AppError(403, "FORBIDDEN", MESSAGES.BOOKING.ERROR.FORBIDDEN);
     }
 
     const lockedSeats = await manager.find(SeatInventory, {
@@ -272,11 +273,11 @@ export const getById = async (userId: string, bookingId: string, isAdmin: boolea
   });
 
   if (!booking) {
-    throw new AppError(404, "BOOKING_NOT_FOUND", MESSAGES.BOOKING.BOOKING_NOT_FOUND);
+    throw new AppError(404, "BOOKING_NOT_FOUND", MESSAGES.BOOKING.ERROR.NOT_FOUND);
   }
 
   if (!isAdmin && booking.userId !== userId) {
-    throw new AppError(403, "FORBIDDEN", MESSAGES.BOOKING.FORBIDDEN);
+    throw new AppError(403, "FORBIDDEN", MESSAGES.BOOKING.ERROR.FORBIDDEN);
   }
 
   return booking;

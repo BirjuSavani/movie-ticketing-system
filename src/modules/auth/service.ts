@@ -6,7 +6,14 @@ import { RefreshToken } from "../../database/entities/RefreshToken";
 import { User } from "../../database/entities/User";
 import { MESSAGES } from "../../messages/messages";
 import { AppError } from "../../utils/AppError";
-import { AuthResponse, AuthTokens } from "./types";
+import {
+  AuthResponse,
+  AuthTokens,
+  LoginData,
+  LogoutData,
+  RefreshData,
+  RegisterData,
+} from "./types";
 
 const userRepository = AppDataSource.getRepository(User);
 const tokenRepository = AppDataSource.getRepository(RefreshToken);
@@ -26,7 +33,7 @@ const generateTokens = async (user: User): Promise<AuthTokens> => {
     expiresIn: env.REFRESH_TOKEN_EXPIRES_IN,
   });
 
-  const decodedRefresh = jwt.decode(refreshToken) as any;
+  const decodedRefresh = jwt.decode(refreshToken) as { exp: number };
 
   const tokenRecord = tokenRepository.create({
     token: refreshToken,
@@ -39,15 +46,18 @@ const generateTokens = async (user: User): Promise<AuthTokens> => {
   return { accessToken, refreshToken };
 };
 
-export const register = async (data: any): Promise<AuthResponse> => {
+export const register = async (data: RegisterData): Promise<AuthResponse> => {
+  // Check if user already exists
   const existingUser = await userRepository.findOne({ where: { email: data.email } });
 
   if (existingUser) {
-    throw new AppError(409, "CONFLICT", MESSAGES.AUTH.EMAIL_IS_ALREADY_REGISTERED);
+    throw new AppError(409, "CONFLICT", MESSAGES.AUTH.ERROR.EMAIL_ALREADY_REGISTERED);
   }
 
+  // Hash password
   const hashedPassword = await bcrypt.hash(data.password, env.BCRYPT_SALT_ROUNDS);
 
+  // Create user entity
   const user = userRepository.create({
     name: data.name,
     email: data.email,
@@ -55,8 +65,10 @@ export const register = async (data: any): Promise<AuthResponse> => {
     role: "customer", // Default role
   });
 
+  // Save user
   await userRepository.save(user);
 
+  // Generate tokens
   const tokens = await generateTokens(user);
 
   return {
@@ -70,17 +82,18 @@ export const register = async (data: any): Promise<AuthResponse> => {
   };
 };
 
-export const login = async (data: any): Promise<AuthResponse> => {
+export const login = async (data: LoginData): Promise<AuthResponse> => {
   const user = await userRepository.findOne({ where: { email: data.email } });
 
   if (!user) {
-    throw new AppError(401, "UNAUTHORIZED", MESSAGES.AUTH.INVALID);
+    throw new AppError(401, "UNAUTHORIZED", MESSAGES.AUTH.ERROR.INVALID_CREDENTIALS);
   }
 
+  // Compare password
   const isMatch = await bcrypt.compare(data.password, user.password);
 
   if (!isMatch) {
-    throw new AppError(401, "UNAUTHORIZED", MESSAGES.AUTH.INVALID);
+    throw new AppError(401, "UNAUTHORIZED", MESSAGES.AUTH.ERROR.INVALID_CREDENTIALS);
   }
 
   const tokens = await generateTokens(user);
@@ -96,20 +109,20 @@ export const login = async (data: any): Promise<AuthResponse> => {
   };
 };
 
-export const refresh = async (refreshToken: string): Promise<AuthTokens> => {
+export const refresh = async (data: RefreshData): Promise<AuthTokens> => {
   try {
-    jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET);
+    jwt.verify(data.refreshToken, env.REFRESH_TOKEN_SECRET);
   } catch (error) {
-    throw new AppError(401, "TOKEN_INVALID", MESSAGES.AUTH.INVALID_TOKEN);
+    throw new AppError(401, "TOKEN_INVALID", MESSAGES.AUTH.ERROR.INVALID_TOKEN);
   }
 
   const tokenRecord = await tokenRepository.findOne({
-    where: { token: refreshToken },
+    where: { token: data.refreshToken },
     relations: ["user"],
   });
 
   if (!tokenRecord) {
-    throw new AppError(401, "TOKEN_INVALID", MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
+    throw new AppError(401, "TOKEN_INVALID", MESSAGES.AUTH.ERROR.INVALID_REFRESH_TOKEN);
   }
 
   await tokenRepository.remove(tokenRecord);
@@ -118,9 +131,13 @@ export const refresh = async (refreshToken: string): Promise<AuthTokens> => {
   return tokens;
 };
 
-export const logout = async (refreshToken: string): Promise<void> => {
+export const logout = async (data: LogoutData): Promise<void> => {
+  const refreshToken = data.refreshToken;
+
   if (!refreshToken) return;
+
   const tokenRecord = await tokenRepository.findOne({ where: { token: refreshToken } });
+
   if (tokenRecord) {
     await tokenRepository.remove(tokenRecord);
   }

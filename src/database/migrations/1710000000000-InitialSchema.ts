@@ -63,6 +63,7 @@ export class InitialSchemaWithAllFeatures1710000000000 implements MigrationInter
         "rows" integer NOT NULL,
         "seatsPerRow" integer NOT NULL,
         "rowTypeMapping" jsonb NOT NULL,
+        "isActive" boolean NOT NULL DEFAULT true,
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT now(),
         "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT now(),
         CONSTRAINT "PK_screens" PRIMARY KEY ("id")

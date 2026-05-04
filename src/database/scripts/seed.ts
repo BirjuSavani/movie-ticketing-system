@@ -85,6 +85,7 @@ const runSeed = async () => {
           E: "standard",
           F: "standard",
         },
+        isActive: true,
       });
     }
 

@@ -7,17 +7,20 @@ import * as screenService from "./service";
 export const create = catchAsync(async (req: Request, res: Response) => {
   const screen = await screenService.create(req.body);
 
-  sendSuccess(res, 201, MESSAGES.SCREEN.CREATE_SUCCESS, screen);
+  sendSuccess(res, 201, MESSAGES.SCREEN.SUCCESS.CREATE, screen);
 });
 
 export const getAll = catchAsync(async (req: Request, res: Response) => {
-  const screens = await screenService.getAll();
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
 
-  sendSuccess(res, 200, MESSAGES.SCREEN.FETCH_SUCCESS, screens);
+  const screens = await screenService.getAll(page, limit);
+
+  sendSuccess(res, 200, MESSAGES.SCREEN.SUCCESS.FETCH, screens);
 });
 
 export const getById = catchAsync(async (req: Request, res: Response) => {
   const screen = await screenService.getById(req.params.id as string);
 
-  sendSuccess(res, 200, MESSAGES.SCREEN.FETCH_SUCCESS, screen);
+  sendSuccess(res, 200, MESSAGES.SCREEN.SUCCESS.FETCH, screen);
 });

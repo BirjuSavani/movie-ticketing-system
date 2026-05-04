@@ -9,13 +9,13 @@ export const reserve = catchAsync(async (req: Request, res: Response) => {
   const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
   const result = await bookingService.reserve(req.user!.id, idempotencyKey, req.body);
 
-  sendSuccess(res, 201, MESSAGES.BOOKING.RESERVE_SUCCESS, result);
+  sendSuccess(res, 201, MESSAGES.BOOKING.SUCCESS.RESERVE, result);
 });
 
 export const confirm = catchAsync(async (req: Request, res: Response) => {
   const result = await bookingService.confirm(req.user!.id, req.params.id as string, req.body);
 
-  sendSuccess(res, 200, MESSAGES.BOOKING.CONFIRM_SUCCESS, result);
+  sendSuccess(res, 200, MESSAGES.BOOKING.SUCCESS.CONFIRM, result);
 });
 
 export const cancel = catchAsync(async (req: Request, res: Response) => {
@@ -23,13 +23,13 @@ export const cancel = catchAsync(async (req: Request, res: Response) => {
 
   await bookingService.cancel(req.user!.id, req.params.id as string, isAdmin);
 
-  sendSuccess(res, 200, MESSAGES.BOOKING.CANCEL_SUCCESS);
+  sendSuccess(res, 200, MESSAGES.BOOKING.SUCCESS.CANCEL);
 });
 
 export const getMyBookings = catchAsync(async (req: Request, res: Response) => {
   const bookings = await bookingService.getMyBookings(req.user!.id);
 
-  sendSuccess(res, 200, MESSAGES.BOOKING.FETCH_SUCCESS, bookings);
+  sendSuccess(res, 200, MESSAGES.BOOKING.SUCCESS.FETCH, bookings);
 });
 
 export const getById = catchAsync(async (req: Request, res: Response) => {
@@ -37,5 +37,5 @@ export const getById = catchAsync(async (req: Request, res: Response) => {
 
   const booking = await bookingService.getById(req.user!.id, req.params.id as string, isAdmin);
 
-  sendSuccess(res, 200, MESSAGES.BOOKING.FETCH_SUCCESS, booking);
+  sendSuccess(res, 200, MESSAGES.BOOKING.SUCCESS.FETCH, booking);
 });
